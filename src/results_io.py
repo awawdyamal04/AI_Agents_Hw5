@@ -3,7 +3,8 @@
 Provides small helpers to:
 - save a dict as pretty JSON (hardware snapshot),
 - append a benchmark result dict as a CSV row (fixed schema),
-- append lines to a log file.
+- append lines to a log file,
+- load a benchmark CSV back into a list of dict rows.
 
 Uses only the standard library so it stays lightweight. (< 150 lines)
 """
@@ -60,3 +61,16 @@ def append_log(message, path=None):
     with open(path, "a", encoding="utf-8") as f:
         f.write(f"[{stamp}] {message}\n")
     return path
+
+
+def load_benchmark_csv(path=None):
+    """Load the benchmark CSV into a list of dict rows (in file order).
+
+    Returns [] if the file does not exist or is empty. Uses the stdlib csv
+    module so no pandas dependency is required just to read results.
+    """
+    path = Path(path or config.BENCHMARK_CSV)
+    if not path.exists() or path.stat().st_size == 0:
+        return []
+    with open(path, "r", newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))

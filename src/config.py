@@ -13,10 +13,14 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = PROJECT_ROOT / "results"
 MODELS_DIR = PROJECT_ROOT / "models"
 
-# Output artifacts (created on demand by results_io).
+# Output artifacts (created on demand by results_io / plots / economics).
 HARDWARE_JSON = RESULTS_DIR / "hardware_profile.json"
 BENCHMARK_CSV = RESULTS_DIR / "benchmark_results.csv"
 DRY_RUN_LOG = RESULTS_DIR / "dry_run.log"
+ECONOMICS_CSV = RESULTS_DIR / "economic_analysis.csv"
+PLOT_TOKENS_PER_S = RESULTS_DIR / "tokens_per_sec.png"
+PLOT_LOAD_TIME = RESULTS_DIR / "load_time.png"
+PLOT_PEAK_RAM = RESULTS_DIR / "peak_ram.png"
 
 # --- Known static hardware profile ------------------------------------------
 # These specs are documented from the physical machine and cannot be reliably

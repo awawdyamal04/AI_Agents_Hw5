@@ -3,7 +3,7 @@
 
 > **Course:** Orchestration of AI Agents — Lecture 08L (Local inference and training of large language models)
 > **This README is the final technical report.**
-> **Status:** Phase 1 (project skeleton) complete. The CLI runs from the terminal and can probe hardware and write a mock dry-run row. **No real model benchmarks have been run yet** — model runners (baseline / quant / AirLLM) are still pending. Sections marked _⏳ to be generated_ contain **no fabricated numbers**; the only CSV row that exists so far is an explicitly-labelled `mock` dry-run row.
+> **Status:** Phase 2 (measurement core) complete. The **measurement infrastructure is ready**: timing/RAM/throughput metrics, CSV/JSON/log I/O, plotting, an estimated cost-comparison template, and a structural `verify` self-check — all runnable from the terminal. **No real model benchmarks have been run yet** — model runners (baseline / quant / AirLLM) and their real numbers are still pending (Phase 3 / Phase 6). Sections marked _⏳ to be generated_ contain **no fabricated numbers**; the only benchmark CSV rows that exist so far are explicitly-labelled `mock` dry-run rows, and every economics figure is an openly-marked estimate/placeholder.
 
 ---
 
@@ -149,9 +149,13 @@ flowchart LR
 
 ## 7. CLI Instructions
 
-### 7.0 Phase 1 — Working commands (available now)
-These two lightweight subcommands are implemented and run from the terminal.
+### 7.0 Phase 2 — Working commands (available now)
+These five lightweight subcommands are implemented and run from the terminal.
 They **do not** download or load any model — no real inference happens yet.
+Together they form the **measurement infrastructure** the real benchmarks will
+plug into: metrics (`src/metrics.py`), I/O (`src/results_io.py`), plotting
+(`src/plots.py`), cost model (`src/economics.py`), and a self-check
+(`src/verify.py`).
 
 ```bash
 # Probe CPU/RAM (psutil) + record the static hardware profile.
@@ -161,11 +165,25 @@ python -m src.run_benchmark hardware
 # Write one clearly-fake benchmark row (no LLM) to validate the I/O path.
 # Writes results/benchmark_results.csv (result="mock") and results/dry_run.log
 python -m src.run_benchmark dry-run
+
+# Plot whatever rows already exist in the CSV -> results/*.png.
+# If only mock/dry-run rows exist, charts are clearly labelled "MOCK DATA".
+python -m src.run_benchmark plots
+
+# Write the estimated Local vs Cloud-GPU vs API cost template.
+# Writes results/economic_analysis.csv (all values are labelled estimates).
+python -m src.run_benchmark economics
+
+# Structural self-check: required files/dirs exist, every src/*.py < 150 lines,
+# benchmark CSV present after a dry-run. Prints PASS/FAIL per check + overall.
+python -m src.run_benchmark verify
 ```
 
-> ⚠️ The dry-run row is intentionally fake (`result="mock"`, all metrics `0.0`).
-> It exists only to verify the CSV schema and file writing. **No real model
-> benchmark numbers exist yet.**
+> ⚠️ The dry-run rows are intentionally fake (`result="mock"`, all metrics
+> `0.0`) and exist only to verify the CSV schema and file writing. The
+> economics CSV contains **estimates/placeholders**, not measurements. **No
+> real model benchmark numbers exist yet** — the infrastructure above is ready
+> to record them once the runners land.
 
 ### 7.1 Planned pipeline (later phases)
 ```bash
@@ -177,12 +195,13 @@ pip install -r requirements.txt
 # 2. Pipeline (run as a module so package imports resolve)
 python -m src.run_benchmark hardware      # document hardware        (implemented)
 python -m src.run_benchmark dry-run       # mock row, no download    (implemented)
+python -m src.run_benchmark plots         # PNG charts from CSV      (implemented)
+python -m src.run_benchmark economics     # cost comparison template (implemented)
+python -m src.run_benchmark verify        # structural PASS/FAIL     (implemented)
 python -m src.run_benchmark baseline      # small model, CPU         (pending)
 python -m src.run_benchmark quant         # quantized GGUF           (pending)
 python -m src.run_benchmark airllm        # AirLLM run OR analysis   (pending)
 python -m src.run_benchmark report        # summary tables          (pending)
-python -m src.run_benchmark plots         # PNG charts              (pending)
-python -m src.run_benchmark economics     # cost comparison         (pending)
 ```
 
 ### Optional heavy dependencies (install only if hardware/run allows)

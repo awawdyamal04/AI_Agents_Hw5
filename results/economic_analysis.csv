@@ -1,0 +1,4 @@
+option,upfront_usd,ongoing_basis,est_usd_per_1m_tokens,basis,notes
+Local On-Prem (this laptop),500,electricity ~45W @ $0.15/kWh,0.375,"ESTIMATE: 45W, assumed 5.0 tok/s (PLACEHOLDER, not measured)",Slow but ~zero marginal cloud/API cost; upfront amortized over ~36 months.
+Cloud GPU (rented),0,$0.5/GPU-hour,27.7778,"ESTIMATE: $0.5/hr, assumed 5.0 tok/s (PLACEHOLDER)","Fast, pay-per-hour; setup overhead; cost scales with use."
+API (hosted LLM),0,per-token billing,0.5,ESTIMATE: public list-price order-of-magnitude (PLACEHOLDER),Fastest to use; no hardware; ongoing per-call cost.

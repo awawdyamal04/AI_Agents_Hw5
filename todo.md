@@ -29,11 +29,18 @@ Legend: `[ ]` pending · `[x]` done · `[~]` in progress
 - [ ] Create `src/runners/` package with `__init__.py` (pending — later phase).
 - [ ] Create `models/` folder (pending — created when first weights are downloaded).
 
-## Phase 2 — Measurement Core
-- [ ] Implement `src/hardware.py` — collect CPU/RAM via psutil + GPU static specs.
-- [ ] Implement `src/metrics.py` — timers, TTFT, tokens/sec, RAM peak sampler.
-- [ ] Implement `src/results_io.py` — CSV append, log writer, CSV loader.
-- [ ] Unit-check: hardware snapshot prints valid dict.
+## Phase 2 — Measurement Core (COMPLETE)
+- [x] Implement `src/hardware.py` — collect CPU/RAM via psutil + GPU static specs.
+- [x] Implement `src/metrics.py` — timers, RAM peak sampler, whitespace token count, tokens/sec, result-row builder (< 150 lines).
+- [x] Implement `src/results_io.py` — CSV append, JSON save, log writer, CSV loader (< 150 lines).
+- [x] Implement `src/plots.py` — bar charts from existing CSV rows; mock rows labelled clearly (< 150 lines).
+- [x] Implement `src/economics.py` — estimated local vs cloud GPU vs API cost template → `results/economic_analysis.csv` (< 150 lines).
+- [x] Implement `src/verify.py` + `verify` CLI — required-file / dir / line-count / CSV checks with PASS/FAIL (< 150 lines).
+- [x] Wire CLI subcommands: `hardware`, `dry-run`, `plots`, `economics`, `verify`.
+- [x] Unit-check: hardware snapshot prints valid dict.
+- [x] Verify all measurement files < 150 lines (line-count check passes).
+- [ ] Model runners (`baseline` / `quant` / `airllm`) — pending Phase 3.
+- [ ] Real benchmark numbers — pending Phase 6 (no fabrication).
 
 ## Phase 3 — Runners
 - [ ] Implement `src/runners/base_runner.py` — interface + shared timing + result schema.
