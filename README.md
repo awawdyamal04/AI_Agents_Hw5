@@ -3,7 +3,7 @@
 
 > **Course:** Orchestration of AI Agents — Lecture 08L (Local inference and training of large language models)
 > **This README is the final technical report.**
-> **Status:** Phase 3A (controlled benchmark runners) complete. The **measurement infrastructure is ready**: timing/RAM/throughput metrics, CSV/JSON/log I/O, plotting, an estimated cost-comparison template, and a structural `verify` self-check — all runnable from the terminal. Phase 3A adds two **non-inference** runners: an `env-check` (does Ollama exist? Python version? RAM?) and a `controlled` analysis that estimates the memory footprint of 7B baseline/quantized/AirLLM configs versus this laptop's 8 GB RAM / ~2 GB VRAM. **No real model benchmarks have been run yet** — real runners (baseline / quant / AirLLM) and their numbers remain optional/pending (Phase 6). Every CSV row is tagged with a `result_type` so provenance is explicit: `real`, `mock` (dry-run), `controlled_analysis` (estimate), or `environment_check` (capability probe). Sections marked _⏳ to be generated_ contain **no fabricated numbers**; the only rows that exist so far are `mock`, `environment_check`, and clearly-labelled `controlled_analysis` estimates, and every economics figure is an openly-marked estimate/placeholder.
+> **Status:** Phase 3A (controlled benchmark runners) + Phase 3B (optional backend availability checks) complete. The **measurement infrastructure is ready**: timing/RAM/throughput metrics, CSV/JSON/log I/O, plotting, an estimated cost-comparison template, and a structural `verify` self-check — all runnable from the terminal. Phase 3A adds two **non-inference** runners: an `env-check` (does Ollama exist? Python version? RAM?) and a `controlled` analysis that estimates the memory footprint of 7B baseline/quantized/AirLLM configs versus this laptop's 8 GB RAM / ~2 GB VRAM. **No real model benchmarks have been run yet** — real runners (baseline / quant / AirLLM) and their numbers remain optional/pending (Phase 6). Every CSV row is tagged with a `result_type` so provenance is explicit: `real`, `mock` (dry-run), `controlled_analysis` (estimate), or `environment_check` (capability probe). Sections marked _⏳ to be generated_ contain **no fabricated numbers**; the only rows that exist so far are `mock`, `environment_check`, and clearly-labelled `controlled_analysis` estimates, and every economics figure is an openly-marked estimate/placeholder.
 
 > **Environment note (honest limitation):** In the current environment `ollama` is **not installed** (`bash: ollama: command not found`) and the assignment's rules for this phase forbid downloading models or installing Ollama / transformers / torch / AirLLM / llama-cpp. Real local LLM inference therefore cannot be executed here. This is recorded as a **documented environment limitation**, not hidden: the `env-check` command writes an `environment_check` row proving Ollama is absent, and the `controlled` command produces **labelled estimates** of expected behaviour (fit/OOM, fast/slow) derived from transparent memory formulas — never faked measurements. Optional real runs remain available for anyone who later installs the heavy dependencies on capable hardware.
 
@@ -217,6 +217,51 @@ reader can never confuse an estimate with a measurement:
 
 **Future optional real runs** would append `result_type="real"` rows using the
 same schema — only these should ever be read as genuine benchmark results.
+
+### 7.2 Backend Availability Results (Phase 3B)
+Phase 3B adds three **optional real-backend runners** that check whether a real
+inference backend is even present — *without installing anything, downloading any
+model, or running any inference*. Each runner probes for its dependency and, when
+the dependency is missing, records a single honest `environment_check` row saying
+so. In the current environment **none of the three backends are installed**, so
+every check records `status="unavailable"`:
+
+| Backend | Command | Probe | Result here |
+|---|---|---|---|
+| Ollama (quantized/GGUF) | `ollama-check` | `shutil.which("ollama")` | **unavailable** — Ollama CLI not installed |
+| HuggingFace + torch (tiny CPU) | `hf-check` | `importlib.util.find_spec("transformers"/"torch")` | **unavailable** — transformers/torch not installed |
+| AirLLM (layer streaming) | `airllm-check` | `importlib.util.find_spec("airllm")` | **unavailable** — AirLLM not installed; controlled AirLLM analysis is used instead |
+
+Run all three at once:
+```bash
+python -m src.run_benchmark backend-checks   # probes Ollama, HF/torch, AirLLM
+python -m src.run_benchmark plots            # PNG charts (environment_check rows excluded)
+python -m src.run_benchmark verify           # structural PASS/FAIL self-check
+```
+
+**This is a documented limitation, not a fake result.** No real LLM inference
+happened in this environment — the runners only detect that the required
+dependency is absent and write it down. The probes use `shutil.which` /
+`importlib.util.find_spec`, which detect a dependency *without importing or
+executing it*, so nothing heavy is triggered. If a backend were present, the
+runners would still not run inference in this phase; they record a `skipped`
+`environment_check` row and each file documents (in `_placeholder_real_run`) how
+a real run *would* be wired for anyone who later installs the deps on capable
+hardware.
+
+These `environment_check` rows carry no benchmark numbers and are therefore
+**excluded from the performance charts**; `controlled_analysis` rows remain
+labelled non-real (estimates), and `mock` rows remain labelled mock.
+
+Why this matters for the assignment: it directly demonstrates the central point
+of Lecture 08L — **local LLM deployment is not just "run the model."** Whether a
+massive model can run locally depends on a whole stack: the **hardware** (RAM /
+VRAM ceilings), the **software stack** (torch / transformers / Ollama / AirLLM
+actually being installed and compatible with Python 3.8), the **model format**
+(GGUF vs SafeTensors), the **quantization** level (fp16 → INT4 shrinks a 7B model
+from ~14 GB to ~3.5 GB), and **memory-aware execution** (AirLLM streaming one
+layer at a time). A missing backend is itself a real, informative constraint —
+exactly the kind of feasibility limit this project set out to analyze.
 
 ### 7.1 Planned pipeline (later phases)
 ```bash

@@ -52,7 +52,17 @@ Legend: `[ ]` pending · `[x]` done · `[~]` in progress
 - [x] Update `verify.py` to require the `src/runners/` files (all still < 150 lines).
 - [x] Run `env-check` (Ollama confirmed NOT installed) + `controlled` (3 estimate rows).
 
-## Phase 3B — Real Runners (OPTIONAL / PENDING — needs heavy deps + capable HW)
+## Phase 3B — Optional Backend Availability Checks (COMPLETE) + Real Runners (PENDING)
+Optional backend availability runners — implemented, safe-skipping, no inference:
+- [x] Implement `src/runners/ollama_runner.py` — `shutil.which("ollama")`; if absent record `environment_check` row (`unavailable`, "Ollama CLI not installed"); placeholder documents a future real call.
+- [x] Implement `src/runners/hf_runner.py` — `importlib.util.find_spec` for transformers+torch (no import); if missing record `environment_check` row (`unavailable`, "transformers/torch not installed").
+- [x] Implement `src/runners/airllm_optional_runner.py` — `find_spec("airllm")`; if missing record `environment_check` row (`unavailable`, points to controlled AirLLM analysis).
+- [x] Wire CLI subcommands `ollama-check` / `hf-check` / `airllm-check` / `backend-checks`.
+- [x] Update `verify.py` to require the three new runner files (all still < 150 lines; verify PASS 23/23).
+- [x] Confirm plots exclude `environment_check` rows; keep `controlled_analysis` non-real and `mock` labelled mock.
+- [x] Run `backend-checks` in current env — all three backends confirmed **unavailable** (Ollama / transformers+torch / AirLLM not installed). Documented limitation, not a fake result.
+
+Real inference runners — still OPTIONAL / PENDING (needs heavy deps + capable HW):
 - [ ] Implement `src/runners/baseline_runner.py` — small HF model on CPU (real).
 - [ ] Implement `src/runners/quant_runner.py` — GGUF/quantized via llama-cpp or Ollama (real).
 - [ ] Implement `src/runners/airllm_runner.py` — real AirLLM run (falls back to controlled analysis).

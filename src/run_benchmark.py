@@ -1,18 +1,14 @@
 """CLI orchestrator for Assignment 05.
 
-Thin argparse entrypoint. Phase 2 wires up the measurement-infrastructure
-subcommands (no real model inference is implemented yet):
+Thin argparse entrypoint. No real model inference is implemented; every
+subcommand either probes the environment or records clearly-labelled non-real
+rows. The available subcommands (name + help) are defined in the COMMANDS
+table below and shown by ``python -m src.run_benchmark -h``.
 
-    python -m src.run_benchmark hardware    # probe + save hardware profile
-    python -m src.run_benchmark dry-run     # write a mock benchmark row + log
-    python -m src.run_benchmark env-check   # environment_check row (Ollama? RAM?)
-    python -m src.run_benchmark controlled  # controlled_analysis rows (estimates)
-    python -m src.run_benchmark plots       # plot existing CSV rows -> PNGs
-    python -m src.run_benchmark economics    # cost-comparison template CSV
-    python -m src.run_benchmark verify      # structural PASS/FAIL checks
-
-Phase 3A adds env-check + controlled (both non-inference: no models, no Ollama).
-Real baseline/quant/airllm runners remain optional/pending. (< 150 lines)
+Phase 3B adds the optional real-backend checks (``ollama-check``, ``hf-check``,
+``airllm-check``, and ``backend-checks`` for all three): each safely records an
+environment_check row explaining why the dependency-heavy path did NOT run —
+nothing is installed, downloaded, or inferred. (< 150 lines)
 """
 
 import argparse
@@ -23,8 +19,11 @@ from . import hardware
 from . import plots
 from . import results_io
 from . import verify
+from .runners import airllm_optional_runner
 from .runners import controlled_runner
 from .runners import env_runner
+from .runners import hf_runner
+from .runners import ollama_runner
 
 
 def cmd_hardware(_args):
@@ -34,11 +33,7 @@ def cmd_hardware(_args):
 
 
 def cmd_dry_run(_args):
-    """Write one clearly-fake benchmark row (no LLM inference) + a short log.
-
-    This validates the CSV schema and I/O path end-to-end without downloading
-    or loading any model.
-    """
+    """Write one clearly-fake benchmark row (no LLM inference) + a short log."""
     row = dict(config.DRY_RUN_ROW)
     csv_path = results_io.append_csv_row(row, config.BENCHMARK_CSV)
 
@@ -58,22 +53,41 @@ def cmd_dry_run(_args):
 
 
 def cmd_env_check(_args):
-    """Record an environment_check row (Ollama presence, Python, RAM).
-
-    No model is loaded. On this machine Ollama is not installed, so the row
-    documents that real quantized inference is unavailable here.
-    """
+    """Record an environment_check row (Ollama presence, Python, RAM)."""
     env_runner.run()
     return 0
 
 
 def cmd_controlled(_args):
-    """Record controlled_analysis rows for the 7B baseline/quant/AirLLM configs.
-
-    Pure memory-footprint estimates vs. this machine's RAM/VRAM — clearly
-    labelled result_type="controlled_analysis". No model inference happens.
-    """
+    """Record controlled_analysis rows for the 7B baseline/quant/AirLLM configs."""
     controlled_runner.run()
+    return 0
+
+
+def cmd_ollama_check(_args):
+    """Phase 3B: probe for the ollama CLI; record availability (no inference)."""
+    ollama_runner.run()
+    return 0
+
+
+def cmd_hf_check(_args):
+    """Phase 3B: probe for transformers/torch; record availability (no inference)."""
+    hf_runner.run()
+    return 0
+
+
+def cmd_airllm_check(_args):
+    """Phase 3B: probe for airllm; record availability (no inference)."""
+    airllm_optional_runner.run()
+    return 0
+
+
+def cmd_backend_checks(_args):
+    """Phase 3B: run all three optional backend checks in one go."""
+    print("### Backend availability checks (Phase 3B — no model inference) ###")
+    for fn in (ollama_runner.run, hf_runner.run, airllm_optional_runner.run):
+        fn()
+        print()
     return 0
 
 
@@ -94,43 +108,33 @@ def cmd_verify(_args):
     return verify.run()
 
 
+# name -> (help text, handler). Kept as a table so the parser stays compact.
+COMMANDS = [
+    ("hardware", "probe CPU/RAM + static profile, save JSON", cmd_hardware),
+    ("dry-run", "write a fake benchmark row + log (no model)", cmd_dry_run),
+    ("env-check", "record environment_check row (Ollama? RAM?)", cmd_env_check),
+    ("controlled", "record controlled_analysis rows (estimates)", cmd_controlled),
+    ("ollama-check", "Phase 3B: is the ollama CLI installed?", cmd_ollama_check),
+    ("hf-check", "Phase 3B: transformers/torch importable?", cmd_hf_check),
+    ("airllm-check", "Phase 3B: is airllm importable?", cmd_airllm_check),
+    ("backend-checks", "Phase 3B: run all optional backend checks", cmd_backend_checks),
+    ("plots", "plot existing CSV rows to results/*.png", cmd_plots),
+    ("economics", "write estimated cost-comparison template CSV", cmd_economics),
+    ("verify", "structural checks + line limits (PASS/FAIL)", cmd_verify),
+]
+
+
 def build_parser():
-    """Build the argparse parser with the Phase 2 subcommands."""
+    """Build the argparse parser from the COMMANDS table."""
     parser = argparse.ArgumentParser(
         prog="python -m src.run_benchmark",
-        description="Assignment 05 benchmark CLI (Phase 3A: measurement core + "
-                    "env-check/controlled analysis — no real model inference).",
+        description="Assignment 05 benchmark CLI (Phase 3B: optional backend "
+                    "availability checks — no real model inference).",
     )
     sub = parser.add_subparsers(dest="command", required=True)
-
-    p_hw = sub.add_parser("hardware",
-                          help="probe CPU/RAM + static profile, save JSON")
-    p_hw.set_defaults(func=cmd_hardware)
-
-    p_dry = sub.add_parser("dry-run",
-                           help="write a fake benchmark row + log (no model)")
-    p_dry.set_defaults(func=cmd_dry_run)
-
-    p_env = sub.add_parser("env-check",
-                           help="record environment_check row (Ollama? RAM?)")
-    p_env.set_defaults(func=cmd_env_check)
-
-    p_ctrl = sub.add_parser("controlled",
-                            help="record controlled_analysis rows (estimates)")
-    p_ctrl.set_defaults(func=cmd_controlled)
-
-    p_plot = sub.add_parser("plots",
-                            help="plot existing CSV rows to results/*.png")
-    p_plot.set_defaults(func=cmd_plots)
-
-    p_eco = sub.add_parser("economics",
-                           help="write estimated cost-comparison template CSV")
-    p_eco.set_defaults(func=cmd_economics)
-
-    p_ver = sub.add_parser("verify",
-                           help="structural checks + line limits (PASS/FAIL)")
-    p_ver.set_defaults(func=cmd_verify)
-
+    for name, help_text, func in COMMANDS:
+        p = sub.add_parser(name, help=help_text)
+        p.set_defaults(func=func)
     return parser
 
 

@@ -31,6 +31,10 @@ REQUIRED_FILES = [
     "src/runners/base_runner.py",
     "src/runners/env_runner.py",
     "src/runners/controlled_runner.py",
+    # Phase 3B optional backend runners (availability checks only, no inference).
+    "src/runners/ollama_runner.py",
+    "src/runners/hf_runner.py",
+    "src/runners/airllm_optional_runner.py",
     "README.md",
     "todo.md",
     "requirements.txt",
