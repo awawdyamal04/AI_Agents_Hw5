@@ -69,10 +69,19 @@ Real inference runners — still OPTIONAL / PENDING (needs heavy deps + capable 
 - [ ] Ensure every real runner catches OOM/errors and records `error_reason`.
 - [ ] NOTE: blocked in current environment — `ollama` not installed and heavy deps (torch/transformers/AirLLM/llama-cpp) intentionally not installed this phase.
 
-## Phase 4 — CLI Orchestrator
-- [ ] Implement `src/run_benchmark.py` — argparse subcommands (hardware/baseline/quant/airllm/all/report/plots/economics).
-- [ ] Add `--dry-run` mock mode.
-- [ ] Verify all files are < 150 lines (line-count check).
+## Phase 4 — CLI Orchestrator + Final Report Polishing (COMPLETE)
+- [x] Implement `src/run_benchmark.py` — argparse subcommands (hardware/dry-run/env-check/controlled/backend-checks/plots/economics/verify).
+- [x] `dry-run` mock mode implemented.
+- [x] Verify all files are < 150 lines (line-count check passes).
+- [x] Polish `README.md` into a final technical report based on **actual** outputs (hardware profile, mock/dry-run, controlled rows, backend checks, plots, economics, verify).
+- [x] Report clearly states what was executed vs NOT executed (no real Ollama/HF/torch/AirLLM inference; no downloaded models).
+- [x] Report explains why controlled analysis is valid under 8 GB RAM / ~2 GB VRAM + missing backends (documented limitation, not fake results).
+- [x] Report ties findings to Lecture 08L (CPU/GPU, RAM/VRAM, HF/Ollama, quantization, GGUF/SafeTensors, prefill/decode, tokens/sec, paging/mmap, AirLLM, local vs cloud vs API cost) + transformer memory background.
+- [x] Add results table (hardware JSON, benchmark CSV, economics CSV, plots, backend availability).
+- [x] Interpret the three controlled rows (baseline_fp16_7b OOM; quantized_int4_7b fits-but-slow; airllm ~1.44 GB peak, disk-I/O-bound).
+- [x] List exact CLI commands that were run.
+- [x] Add "Reproducibility", "Limitations and Future Real Runs", and "Self-scoring recommendation" sections.
+- [ ] Final verification + submission — PENDING (Phase 8: run `verify`, confirm clean `git status`, commit, push public repo, submit URL).
 
 ## Phase 5 — Reporting & Analysis
 - [ ] Implement `src/report.py` — aggregate raw CSV → summary tables.
