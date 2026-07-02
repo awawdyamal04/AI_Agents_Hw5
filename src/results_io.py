@@ -30,6 +30,28 @@ def save_json(data, path):
     return Path(path)
 
 
+def _migrate_header(path):
+    """Rewrite an existing CSV whose header predates the current schema.
+
+    If the file's header does not match config.CSV_COLUMNS (e.g. an older run
+    lacked the `result_type` column), reload every row and rewrite the file
+    with the current columns, filling any newly-added column with a blank.
+    Existing rows are preserved; nothing is fabricated.
+    """
+    if not path.exists() or path.stat().st_size == 0:
+        return
+    with open(path, "r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        if reader.fieldnames == config.CSV_COLUMNS:
+            return
+        rows = list(reader)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=config.CSV_COLUMNS)
+        writer.writeheader()
+        for r in rows:
+            writer.writerow({c: r.get(c, "") for c in config.CSV_COLUMNS})
+
+
 def append_csv_row(row, path=None):
     """Append one benchmark row to the CSV, writing a header if new.
 
@@ -38,6 +60,7 @@ def append_csv_row(row, path=None):
     """
     path = Path(path or config.BENCHMARK_CSV)
     _ensure_parent(path)
+    _migrate_header(path)
 
     # Fill/normalize against the fixed schema.
     normalized = {col: row.get(col, "") for col in config.CSV_COLUMNS}

@@ -38,11 +38,13 @@ STATIC_HARDWARE = {
 }
 
 # --- Benchmark result schema -------------------------------------------------
-# One row per run. Phase 1 only emits mock (dry-run) rows; real runners fill
-# the same columns later so the CSV format never changes.
+# One row per run. Phase 1 emits mock (dry-run) rows; Phase 3A adds
+# environment_check and controlled_analysis rows; real runners fill the same
+# columns later so the CSV format never changes. `result_type` records each
+# row's provenance so a reader can never mistake an estimate for a measurement.
 CSV_COLUMNS = [
     "timestamp",
-    "config",        # baseline | quant | airllm | dry-run
+    "config",        # baseline_fp16_7b | quantized_int4_7b | ... | dry-run
     "model",
     "params",
     "precision",
@@ -51,7 +53,8 @@ CSV_COLUMNS = [
     "tokens_per_s",
     "peak_ram_mb",
     "vram",
-    "result",        # success | slow | failure | mock
+    "result",        # success | failed | skipped | unavailable | mock | slow
+    "result_type",   # real | mock | controlled_analysis | environment_check
     "error_reason",
 ]
 
@@ -73,5 +76,12 @@ DRY_RUN_ROW = {
     "peak_ram_mb": 0.0,
     "vram": "N/A",
     "result": "mock",
+    "result_type": "mock",
     "error_reason": "dry-run: no model was loaded or executed",
 }
+
+# --- Controlled-analysis machine limits (Phase 3A) --------------------------
+# Used by the controlled runner to compare estimated model footprints against
+# this laptop's actual capacity. Sourced from STATIC_HARDWARE above.
+MACHINE_RAM_GB = STATIC_HARDWARE["ram_gb"]            # 8
+MACHINE_VRAM_GB = STATIC_HARDWARE["dgpu_vram_gb_approx"]  # ~2

@@ -26,7 +26,7 @@ Legend: `[ ]` pending · `[x]` done · `[~]` in progress
 - [x] Add `src/run_benchmark.py` — argparse CLI with `hardware` and `dry-run` subcommands (< 150 lines).
 - [x] Verify `python -m src.run_benchmark hardware` runs and writes JSON.
 - [x] Verify `python -m src.run_benchmark dry-run` writes mock CSV row + log.
-- [ ] Create `src/runners/` package with `__init__.py` (pending — later phase).
+- [x] Create `src/runners/` package with `__init__.py` (Phase 3A).
 - [ ] Create `models/` folder (pending — created when first weights are downloaded).
 
 ## Phase 2 — Measurement Core (COMPLETE)
@@ -39,15 +39,25 @@ Legend: `[ ]` pending · `[x]` done · `[~]` in progress
 - [x] Wire CLI subcommands: `hardware`, `dry-run`, `plots`, `economics`, `verify`.
 - [x] Unit-check: hardware snapshot prints valid dict.
 - [x] Verify all measurement files < 150 lines (line-count check passes).
-- [ ] Model runners (`baseline` / `quant` / `airllm`) — pending Phase 3.
+- [ ] Model runners (`baseline` / `quant` / `airllm`) real execution — pending Phase 6.
 - [ ] Real benchmark numbers — pending Phase 6 (no fabrication).
 
-## Phase 3 — Runners
-- [ ] Implement `src/runners/base_runner.py` — interface + shared timing + result schema.
-- [ ] Implement `src/runners/baseline_runner.py` — small HF model on CPU.
-- [ ] Implement `src/runners/quant_runner.py` — GGUF/quantized via llama-cpp or Ollama.
-- [ ] Implement `src/runners/airllm_runner.py` — AirLLM run OR controlled analysis mode.
-- [ ] Ensure every runner catches OOM/errors and records `error_reason`.
+## Phase 3A — Controlled Benchmark Runners (COMPLETE)
+- [x] Implement `src/runners/base_runner.py` — shared schema helper + status constants (`success` / `failed` / `skipped` / `unavailable`).
+- [x] Implement `src/runners/env_runner.py` — check `ollama` CLI presence, Python version, RAM (psutil) → `environment_check` row.
+- [x] Implement `src/runners/controlled_runner.py` — fp16/int8/int4 memory formulas vs RAM=8 GB / VRAM=2 GB → `controlled_analysis` rows for baseline_fp16_7b / quantized_int4_7b / airllm_layer_streaming_7b.
+- [x] Every controlled/env row tagged `result_type` (never `"real"`) with an explanatory `error_reason`.
+- [x] Wire CLI subcommands `env-check` and `controlled`.
+- [x] Update `plots.py` to colour/label `controlled_analysis` rows and exclude `environment_check` rows.
+- [x] Update `verify.py` to require the `src/runners/` files (all still < 150 lines).
+- [x] Run `env-check` (Ollama confirmed NOT installed) + `controlled` (3 estimate rows).
+
+## Phase 3B — Real Runners (OPTIONAL / PENDING — needs heavy deps + capable HW)
+- [ ] Implement `src/runners/baseline_runner.py` — small HF model on CPU (real).
+- [ ] Implement `src/runners/quant_runner.py` — GGUF/quantized via llama-cpp or Ollama (real).
+- [ ] Implement `src/runners/airllm_runner.py` — real AirLLM run (falls back to controlled analysis).
+- [ ] Ensure every real runner catches OOM/errors and records `error_reason`.
+- [ ] NOTE: blocked in current environment — `ollama` not installed and heavy deps (torch/transformers/AirLLM/llama-cpp) intentionally not installed this phase.
 
 ## Phase 4 — CLI Orchestrator
 - [ ] Implement `src/run_benchmark.py` — argparse subcommands (hardware/baseline/quant/airllm/all/report/plots/economics).

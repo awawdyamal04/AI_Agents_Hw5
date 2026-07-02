@@ -3,7 +3,9 @@
 
 > **Course:** Orchestration of AI Agents — Lecture 08L (Local inference and training of large language models)
 > **This README is the final technical report.**
-> **Status:** Phase 2 (measurement core) complete. The **measurement infrastructure is ready**: timing/RAM/throughput metrics, CSV/JSON/log I/O, plotting, an estimated cost-comparison template, and a structural `verify` self-check — all runnable from the terminal. **No real model benchmarks have been run yet** — model runners (baseline / quant / AirLLM) and their real numbers are still pending (Phase 3 / Phase 6). Sections marked _⏳ to be generated_ contain **no fabricated numbers**; the only benchmark CSV rows that exist so far are explicitly-labelled `mock` dry-run rows, and every economics figure is an openly-marked estimate/placeholder.
+> **Status:** Phase 3A (controlled benchmark runners) complete. The **measurement infrastructure is ready**: timing/RAM/throughput metrics, CSV/JSON/log I/O, plotting, an estimated cost-comparison template, and a structural `verify` self-check — all runnable from the terminal. Phase 3A adds two **non-inference** runners: an `env-check` (does Ollama exist? Python version? RAM?) and a `controlled` analysis that estimates the memory footprint of 7B baseline/quantized/AirLLM configs versus this laptop's 8 GB RAM / ~2 GB VRAM. **No real model benchmarks have been run yet** — real runners (baseline / quant / AirLLM) and their numbers remain optional/pending (Phase 6). Every CSV row is tagged with a `result_type` so provenance is explicit: `real`, `mock` (dry-run), `controlled_analysis` (estimate), or `environment_check` (capability probe). Sections marked _⏳ to be generated_ contain **no fabricated numbers**; the only rows that exist so far are `mock`, `environment_check`, and clearly-labelled `controlled_analysis` estimates, and every economics figure is an openly-marked estimate/placeholder.
+
+> **Environment note (honest limitation):** In the current environment `ollama` is **not installed** (`bash: ollama: command not found`) and the assignment's rules for this phase forbid downloading models or installing Ollama / transformers / torch / AirLLM / llama-cpp. Real local LLM inference therefore cannot be executed here. This is recorded as a **documented environment limitation**, not hidden: the `env-check` command writes an `environment_check` row proving Ollama is absent, and the `controlled` command produces **labelled estimates** of expected behaviour (fit/OOM, fast/slow) derived from transparent memory formulas — never faked measurements. Optional real runs remain available for anyone who later installs the heavy dependencies on capable hardware.
 
 ---
 
@@ -163,11 +165,26 @@ plug into: metrics (`src/metrics.py`), I/O (`src/results_io.py`), plotting
 python -m src.run_benchmark hardware
 
 # Write one clearly-fake benchmark row (no LLM) to validate the I/O path.
-# Writes results/benchmark_results.csv (result="mock") and results/dry_run.log
+# Writes results/benchmark_results.csv (result_type="mock") and dry_run.log
 python -m src.run_benchmark dry-run
 
+# Check whether real inference is even possible here (no model loaded).
+# Appends an environment_check row: is the `ollama` CLI installed? Python
+# version? RAM (psutil)? In this environment Ollama is NOT installed, so the
+# row records status="unavailable" (result_type="environment_check").
+python -m src.run_benchmark env-check
+
+# Controlled analysis: estimate the memory footprint of three 7B configs
+# (baseline fp16, INT4 quantized, AirLLM layer-streaming) using transparent
+# formulas and compare against RAM=8 GB / VRAM=~2 GB. Appends three
+# result_type="controlled_analysis" rows with an explanatory note each.
+# No model is downloaded or executed — these are labelled ESTIMATES.
+python -m src.run_benchmark controlled
+
 # Plot whatever rows already exist in the CSV -> results/*.png.
-# If only mock/dry-run rows exist, charts are clearly labelled "MOCK DATA".
+# Bars are coloured by provenance and, when no real rows exist, the charts are
+# watermarked ("CONTROLLED ANALYSIS" / "MOCK DATA"). environment_check rows are
+# excluded from numeric charts.
 python -m src.run_benchmark plots
 
 # Write the estimated Local vs Cloud-GPU vs API cost template.
@@ -179,11 +196,27 @@ python -m src.run_benchmark economics
 python -m src.run_benchmark verify
 ```
 
-> ⚠️ The dry-run rows are intentionally fake (`result="mock"`, all metrics
+> ⚠️ The dry-run rows are intentionally fake (`result_type="mock"`, all metrics
 > `0.0`) and exist only to verify the CSV schema and file writing. The
-> economics CSV contains **estimates/placeholders**, not measurements. **No
-> real model benchmark numbers exist yet** — the infrastructure above is ready
-> to record them once the runners land.
+> `controlled` rows are **estimates** (`result_type="controlled_analysis"`),
+> not measurements, and the `env-check` row (`result_type="environment_check"`)
+> is a capability probe, not a benchmark. The economics CSV contains
+> **estimates/placeholders**. **No real model benchmark numbers exist yet** —
+> the infrastructure above is ready to record them once real runs are executed.
+
+#### Row provenance — how each result type is distinguished
+Every row in `results/benchmark_results.csv` carries a `result_type` column so a
+reader can never confuse an estimate with a measurement:
+
+| `result_type` | Meaning | Produced by | Numbers are… |
+|---|---|---|---|
+| `real` | An actual measured benchmark run | real runners (Phase 6, **not yet run**) | measured |
+| `mock` | Fake schema-validation row | `dry-run` | all `0.0`, fake |
+| `controlled_analysis` | Estimated footprint + expected outcome | `controlled` | **estimated** from formulas |
+| `environment_check` | Capability probe (Ollama? RAM?) | `env-check` | n/a (probe) |
+
+**Future optional real runs** would append `result_type="real"` rows using the
+same schema — only these should ever be read as genuine benchmark results.
 
 ### 7.1 Planned pipeline (later phases)
 ```bash
@@ -195,12 +228,14 @@ pip install -r requirements.txt
 # 2. Pipeline (run as a module so package imports resolve)
 python -m src.run_benchmark hardware      # document hardware        (implemented)
 python -m src.run_benchmark dry-run       # mock row, no download    (implemented)
+python -m src.run_benchmark env-check     # Ollama?/Python/RAM probe (implemented)
+python -m src.run_benchmark controlled    # controlled analysis rows (implemented)
 python -m src.run_benchmark plots         # PNG charts from CSV      (implemented)
 python -m src.run_benchmark economics     # cost comparison template (implemented)
 python -m src.run_benchmark verify        # structural PASS/FAIL     (implemented)
-python -m src.run_benchmark baseline      # small model, CPU         (pending)
-python -m src.run_benchmark quant         # quantized GGUF           (pending)
-python -m src.run_benchmark airllm        # AirLLM run OR analysis   (pending)
+python -m src.run_benchmark baseline      # small model, CPU         (optional/pending)
+python -m src.run_benchmark quant         # quantized GGUF           (optional/pending)
+python -m src.run_benchmark airllm        # AirLLM run OR analysis   (optional/pending)
 python -m src.run_benchmark report        # summary tables          (pending)
 ```
 

@@ -110,11 +110,13 @@ def tokens_per_second(num_tokens, elapsed_s):
 def build_result_row(config_name, model, *, params="", precision="",
                      load_s=0.0, ttft_s=0.0, tokens_per_s=0.0,
                      peak_ram_mb=0.0, vram="N/A", result="success",
-                     error_reason=""):
+                     result_type="real", error_reason=""):
     """Assemble one benchmark row keyed exactly to config.CSV_COLUMNS.
 
-    Kept in metrics so runners build rows the same way. `timestamp` is left
-    for results_io to stamp at write time.
+    Kept in metrics so runners build rows the same way. `result_type` records
+    provenance (real | mock | controlled_analysis | environment_check) so an
+    estimate is never mistaken for a measurement. `timestamp` is left for
+    results_io to stamp at write time.
     """
     row = {
         "config": config_name,
@@ -127,6 +129,7 @@ def build_result_row(config_name, model, *, params="", precision="",
         "peak_ram_mb": round(float(peak_ram_mb), 2),
         "vram": vram,
         "result": result,
+        "result_type": result_type,
         "error_reason": error_reason,
     }
     # Guard: only emit known columns (minus timestamp, added at write time).

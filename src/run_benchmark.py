@@ -5,11 +5,14 @@ subcommands (no real model inference is implemented yet):
 
     python -m src.run_benchmark hardware    # probe + save hardware profile
     python -m src.run_benchmark dry-run     # write a mock benchmark row + log
+    python -m src.run_benchmark env-check   # environment_check row (Ollama? RAM?)
+    python -m src.run_benchmark controlled  # controlled_analysis rows (estimates)
     python -m src.run_benchmark plots       # plot existing CSV rows -> PNGs
     python -m src.run_benchmark economics    # cost-comparison template CSV
     python -m src.run_benchmark verify      # structural PASS/FAIL checks
 
-Baseline/quant/airllm runners remain pending for a later phase. (< 150 lines)
+Phase 3A adds env-check + controlled (both non-inference: no models, no Ollama).
+Real baseline/quant/airllm runners remain optional/pending. (< 150 lines)
 """
 
 import argparse
@@ -20,6 +23,8 @@ from . import hardware
 from . import plots
 from . import results_io
 from . import verify
+from .runners import controlled_runner
+from .runners import env_runner
 
 
 def cmd_hardware(_args):
@@ -52,6 +57,26 @@ def cmd_dry_run(_args):
     return 0
 
 
+def cmd_env_check(_args):
+    """Record an environment_check row (Ollama presence, Python, RAM).
+
+    No model is loaded. On this machine Ollama is not installed, so the row
+    documents that real quantized inference is unavailable here.
+    """
+    env_runner.run()
+    return 0
+
+
+def cmd_controlled(_args):
+    """Record controlled_analysis rows for the 7B baseline/quant/AirLLM configs.
+
+    Pure memory-footprint estimates vs. this machine's RAM/VRAM — clearly
+    labelled result_type="controlled_analysis". No model inference happens.
+    """
+    controlled_runner.run()
+    return 0
+
+
 def cmd_plots(_args):
     """Generate plots from whatever rows already exist in the CSV."""
     plots.generate()
@@ -73,8 +98,8 @@ def build_parser():
     """Build the argparse parser with the Phase 2 subcommands."""
     parser = argparse.ArgumentParser(
         prog="python -m src.run_benchmark",
-        description="Assignment 05 benchmark CLI (Phase 2 measurement core — "
-                    "no real model inference yet).",
+        description="Assignment 05 benchmark CLI (Phase 3A: measurement core + "
+                    "env-check/controlled analysis — no real model inference).",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -85,6 +110,14 @@ def build_parser():
     p_dry = sub.add_parser("dry-run",
                            help="write a fake benchmark row + log (no model)")
     p_dry.set_defaults(func=cmd_dry_run)
+
+    p_env = sub.add_parser("env-check",
+                           help="record environment_check row (Ollama? RAM?)")
+    p_env.set_defaults(func=cmd_env_check)
+
+    p_ctrl = sub.add_parser("controlled",
+                            help="record controlled_analysis rows (estimates)")
+    p_ctrl.set_defaults(func=cmd_controlled)
 
     p_plot = sub.add_parser("plots",
                             help="plot existing CSV rows to results/*.png")

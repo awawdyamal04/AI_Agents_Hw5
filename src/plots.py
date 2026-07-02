@@ -1,10 +1,16 @@
-"""Plotting for Assignment 05 — Phase 2.
+"""Plotting for Assignment 05 — Phase 2 / 3A.
 
 Reads results/benchmark_results.csv and generates simple bar charts *only*
-from rows that already exist. It never invents data. If the CSV contains only
-dry-run / mock rows, they are still plotted but every chart title and the
-figure itself are clearly labelled "MOCK DATA" so no reader mistakes them for
-real benchmark numbers.
+from rows that already exist. It never invents data. Rows are coloured by
+provenance (result_type) so estimates are never confused with measurements:
+
+- ``real``               -> blue bars
+- ``controlled_analysis``-> orange bars, chart tagged "CONTROLLED ANALYSIS"
+- ``mock``/dry-run       -> grey bars, chart tagged "MOCK DATA"
+
+``environment_check`` rows carry no benchmark numbers, so they are excluded
+from the numeric charts. If no real rows exist, a watermark is drawn so no
+reader mistakes the charts for real benchmark numbers.
 
 matplotlib is a lightweight, declared dependency; if it is somehow missing we
 skip gracefully with a clear message instead of crashing. (< 150 lines)
@@ -29,6 +35,13 @@ _CHARTS = [
 ]
 
 
+_COLORS = {
+    "real": "#4c72b0",
+    "controlled_analysis": "#dd8452",
+    "mock": "#b0b0b0",
+}
+
+
 def _to_float(value):
     """Best-effort float parse; non-numeric/blank cells become 0.0."""
     try:
@@ -37,10 +50,28 @@ def _to_float(value):
         return 0.0
 
 
-def _is_mock(rows):
-    """True if every row is a mock/dry-run row (or there are no real rows)."""
-    return all(r.get("result", "").lower() in ("mock", "")
-               or r.get("config", "").lower() == "dry-run" for r in rows)
+def _category(row):
+    """Classify a row by provenance: real | controlled_analysis | mock."""
+    rt = (row.get("result_type") or "").lower()
+    if rt in ("controlled_analysis", "environment_check", "mock", "real"):
+        return rt
+    # Fall back for legacy rows without a result_type column.
+    if (row.get("result") or "").lower() == "mock" \
+            or (row.get("config") or "").lower() == "dry-run":
+        return "mock"
+    return "real"
+
+
+def _watermark(cats):
+    """Return watermark/title text for a non-real set, or '' if any real row."""
+    kinds = set(cats)
+    if "real" in kinds:
+        return ""
+    if kinds == {"controlled_analysis"}:
+        return "CONTROLLED ANALYSIS (estimated — not measured)"
+    if kinds == {"mock"}:
+        return "MOCK DATA (no real inference)"
+    return "NON-REAL (mock / estimated)"
 
 
 def _label(row, idx):
@@ -50,20 +81,21 @@ def _label(row, idx):
     return f"{cfg}\n{model}"[:40] if model else cfg
 
 
-def _render_one(rows, column, out_path, ylabel, mock):
+def _render_one(rows, cats, column, out_path, ylabel):
     """Render a single bar chart for `column` and save it. Returns the path."""
     labels = [_label(r, i) for i, r in enumerate(rows)]
     values = [_to_float(r.get(column)) for r in rows]
+    colors = [_COLORS.get(c, "#4c72b0") for c in cats]
 
-    fig, ax = plt.subplots(figsize=(max(6, len(rows) * 1.6), 4.2))
-    bars = ax.bar(labels, values,
-                  color="#b0b0b0" if mock else "#4c72b0")
+    fig, ax = plt.subplots(figsize=(max(6, len(rows) * 1.7), 4.4))
+    bars = ax.bar(labels, values, color=colors)
+    banner = _watermark(cats)
     title = ylabel + " by configuration"
-    if mock:
-        title += "  —  MOCK DATA (no real inference)"
-        ax.text(0.5, 0.5, "MOCK", transform=ax.transAxes, fontsize=48,
-                color="red", alpha=0.18, ha="center", va="center",
-                rotation=20, zorder=0)
+    if banner:
+        title += "  —  " + banner
+        ax.text(0.5, 0.5, banner.split(" ")[0], transform=ax.transAxes,
+                fontsize=44, color="red", alpha=0.16, ha="center",
+                va="center", rotation=20, zorder=0)
     ax.set_title(title, fontsize=10)
     ax.set_ylabel(ylabel)
     ax.tick_params(axis="x", labelsize=8)
@@ -87,22 +119,27 @@ def generate(csv_path=None):
         print("matplotlib not available — skipping plot generation.")
         return []
 
-    rows = results_io.load_benchmark_csv(csv_path)
+    all_rows = results_io.load_benchmark_csv(csv_path)
+    # environment_check rows carry no benchmark numbers -> exclude from charts.
+    rows = [r for r in all_rows if _category(r) != "environment_check"]
     if not rows:
-        print("No benchmark rows found — nothing to plot yet.")
-        print("Run 'python -m src.run_benchmark dry-run' or real benchmarks "
-              "first.")
+        print("No plottable benchmark rows found — nothing to plot yet.")
+        print("Run 'python -m src.run_benchmark dry-run' / 'controlled' or "
+              "real benchmarks first.")
         return []
 
-    mock = _is_mock(rows)
-    tag = "MOCK/dry-run rows" if mock else "real benchmark rows"
-    print(f"Plotting {len(rows)} {tag}.")
-    if mock:
-        print("NOTE: all rows are mock - charts are labelled MOCK DATA.")
+    cats = [_category(r) for r in rows]
+    banner = _watermark(cats)
+    kinds = ", ".join(sorted(set(cats)))
+    excluded = len(all_rows) - len(rows)
+    print(f"Plotting {len(rows)} rows (types: {kinds}"
+          f"{f'; {excluded} environment_check row(s) excluded' if excluded else ''}).")
+    if banner:
+        print(f"NOTE: no real rows — charts are labelled '{banner}'.")
 
     written = []
     for column, out_path, ylabel in _CHARTS:
-        path = _render_one(rows, column, out_path, ylabel, mock)
+        path = _render_one(rows, cats, column, out_path, ylabel)
         written.append(path)
         print(f"Wrote {path}")
     return written

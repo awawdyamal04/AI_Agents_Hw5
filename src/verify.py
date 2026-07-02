@@ -26,6 +26,11 @@ REQUIRED_FILES = [
     "src/economics.py",
     "src/run_benchmark.py",
     "src/verify.py",
+    # Phase 3A runners package (non-inference: env-check + controlled analysis).
+    "src/runners/__init__.py",
+    "src/runners/base_runner.py",
+    "src/runners/env_runner.py",
+    "src/runners/controlled_runner.py",
     "README.md",
     "todo.md",
     "requirements.txt",
