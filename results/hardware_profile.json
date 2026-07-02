@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-07-02T16:20:04",
+  "static_profile": {
+    "os": "Windows 11 Pro",
+    "laptop": "ASUS VivoBook 15 X540UBR",
+    "cpu": "Intel Core i7-8550U",
+    "ram_gb": 8,
+    "igpu": "Intel UHD Graphics 620",
+    "dgpu": "NVIDIA GeForce MX110",
+    "dgpu_vram_gb_approx": 2,
+    "disk": "SanDisk 256GB"
+  },
+  "live": {
+    "psutil_available": true,
+    "cpu_physical_cores": 4,
+    "cpu_logical_cores": 8,
+    "cpu_freq_mhz": 1792.0,
+    "cpu_percent": 15.6,
+    "ram_total_gb": 7.88,
+    "ram_available_gb": 1.32,
+    "ram_used_percent": 83.3
+  },
+  "environment": {
+    "python_version": "3.8.0",
+    "platform": "Windows-10-10.0.26100-SP0",
+    "machine": "AMD64"
+  }
+}

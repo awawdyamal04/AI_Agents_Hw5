@@ -3,7 +3,7 @@
 
 > **Course:** Orchestration of AI Agents — Lecture 08L (Local inference and training of large language models)
 > **This README is the final technical report.**
-> **Status:** Documentation stage complete. Source code and results are generated after running the benchmark commands (see [Planned CLI Instructions](#planned-cli-instructions)). Sections marked _⏳ to be generated_ contain **no fabricated numbers**.
+> **Status:** Phase 1 (project skeleton) complete. The CLI runs from the terminal and can probe hardware and write a mock dry-run row. **No real model benchmarks have been run yet** — model runners (baseline / quant / AirLLM) are still pending. Sections marked _⏳ to be generated_ contain **no fabricated numbers**; the only CSV row that exists so far is an explicitly-labelled `mock` dry-run row.
 
 ---
 
@@ -147,22 +147,42 @@ flowchart LR
 
 ---
 
-## 7. Planned CLI Instructions
+## 7. CLI Instructions
+
+### 7.0 Phase 1 — Working commands (available now)
+These two lightweight subcommands are implemented and run from the terminal.
+They **do not** download or load any model — no real inference happens yet.
+
+```bash
+# Probe CPU/RAM (psutil) + record the static hardware profile.
+# Writes results/hardware_profile.json
+python -m src.run_benchmark hardware
+
+# Write one clearly-fake benchmark row (no LLM) to validate the I/O path.
+# Writes results/benchmark_results.csv (result="mock") and results/dry_run.log
+python -m src.run_benchmark dry-run
+```
+
+> ⚠️ The dry-run row is intentionally fake (`result="mock"`, all metrics `0.0`).
+> It exists only to verify the CSV schema and file writing. **No real model
+> benchmark numbers exist yet.**
+
+### 7.1 Planned pipeline (later phases)
 ```bash
 # 1. Environment (Windows PowerShell)
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 
-# 2. Pipeline
-python src/run_benchmark.py hardware      # document hardware
-python src/run_benchmark.py baseline      # small model, CPU
-python src/run_benchmark.py quant         # quantized GGUF
-python src/run_benchmark.py airllm        # AirLLM run OR analysis
-python src/run_benchmark.py all --dry-run # mock end-to-end (no download)
-python src/run_benchmark.py report        # summary tables
-python src/run_benchmark.py plots         # PNG charts
-python src/run_benchmark.py economics     # cost comparison
+# 2. Pipeline (run as a module so package imports resolve)
+python -m src.run_benchmark hardware      # document hardware        (implemented)
+python -m src.run_benchmark dry-run       # mock row, no download    (implemented)
+python -m src.run_benchmark baseline      # small model, CPU         (pending)
+python -m src.run_benchmark quant         # quantized GGUF           (pending)
+python -m src.run_benchmark airllm        # AirLLM run OR analysis   (pending)
+python -m src.run_benchmark report        # summary tables          (pending)
+python -m src.run_benchmark plots         # PNG charts              (pending)
+python -m src.run_benchmark economics     # cost comparison         (pending)
 ```
 
 ### Optional heavy dependencies (install only if hardware/run allows)

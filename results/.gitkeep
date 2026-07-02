@@ -1,0 +1,2 @@
+# Keep the results/ directory tracked in git while empty.
+# Generated artifacts (CSVs, JSON, logs, PNGs) are written here at runtime.

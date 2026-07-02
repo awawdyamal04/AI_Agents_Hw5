@@ -18,9 +18,16 @@ Legend: `[ ]` pending · `[x]` done · `[~]` in progress
 - [ ] Commit documentation stage to git.
 
 ## Phase 1 — Project Skeleton
-- [ ] Create `src/` and `src/runners/` packages with `__init__.py`.
-- [ ] Create empty `results/` and `models/` folders (with `.gitkeep` for results).
-- [ ] Add `src/config.py` — model list, prompts, run settings (< 150 lines).
+- [x] Create `src/` package with `__init__.py`.
+- [x] Create `results/` folder with `.gitkeep`.
+- [x] Add `src/config.py` — paths, static hardware profile, CSV schema, run settings (< 150 lines).
+- [x] Add `src/hardware.py` — psutil CPU/RAM + static profile → `results/hardware_profile.json` (< 150 lines).
+- [x] Add `src/results_io.py` — JSON/CSV/log writers (< 150 lines).
+- [x] Add `src/run_benchmark.py` — argparse CLI with `hardware` and `dry-run` subcommands (< 150 lines).
+- [x] Verify `python -m src.run_benchmark hardware` runs and writes JSON.
+- [x] Verify `python -m src.run_benchmark dry-run` writes mock CSV row + log.
+- [ ] Create `src/runners/` package with `__init__.py` (pending — later phase).
+- [ ] Create `models/` folder (pending — created when first weights are downloaded).
 
 ## Phase 2 — Measurement Core
 - [ ] Implement `src/hardware.py` — collect CPU/RAM via psutil + GPU static specs.
