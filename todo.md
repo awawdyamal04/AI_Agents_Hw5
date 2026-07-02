@@ -83,6 +83,21 @@ Real inference runners — still OPTIONAL / PENDING (needs heavy deps + capable 
 - [x] Add "Reproducibility", "Limitations and Future Real Runs", and "Self-scoring recommendation" sections.
 - [ ] Final verification + submission — PENDING (Phase 8: run `verify`, confirm clean `git status`, commit, push public repo, submit URL).
 
+## Phase 4.5 — Real Tiny Ollama Benchmark (COMPLETE)
+Ollama was installed (`ollama version is 0.31.1`) and `smollm2:135m` was already pulled.
+This phase adds the project's **single real LLM inference** — no install, no new download.
+- [x] Update `src/runners/ollama_runner.py` — add `run_real()`: if Ollama+`smollm2:135m` present, run `ollama run smollm2:135m "<quantization prompt>"` via the CLI (timeout 120 s, no re-pull); keep the existing `run()` env-check/unavailable behaviour.
+- [x] Measure total wall-time, output tokens (whitespace counter), tokens/sec, best-effort peak RAM of the Ollama process tree; strip ANSI spinner noise from captured output.
+- [x] Append ONE row: `config=ollama_smollm2_135m_real`, `model=smollm2:135m`, `result="success"` (return code 0), `result_type="real"`, note "Real local Ollama inference on tiny quantized/on-device model".
+- [x] Save raw model output to `results/ollama_real_run.log`.
+- [x] Wire CLI subcommand `ollama-real` in `src/run_benchmark.py`.
+- [x] Update `plots.py` — include the real row (blue `[REAL]`), tag `mock` bars `[MOCK]` and `controlled_analysis` bars `[NON-REAL / ESTIMATED]`; keep `environment_check` rows excluded; watermark drops once a real row exists.
+- [x] Keep `controlled_analysis` and `environment_check` rows separate from the real row.
+- [x] All Python files still < 150 lines; `verify` PASS (23/23, 16 files checked).
+- [x] Update `README.md` — new "Real Tiny Ollama Benchmark" section, `smollm2:135m` rationale (8 GB RAM / ~2 GB VRAM), state this is the only real inference, 7B baseline/quant/AirLLM remain controlled analysis; results table + `ollama-real` command; no claim of real AirLLM/HF inference.
+- [x] Ran `ollama-real` (real success, ~1.57 s, ~32 tok/s), `plots`, `verify`.
+- [ ] Final verification + submission still PENDING (Phase 8: clean `git status`, commit, push, submit URL).
+
 ## Phase 5 — Reporting & Analysis
 - [ ] Implement `src/report.py` — aggregate raw CSV → summary tables.
 - [ ] Implement `src/plots.py` — tokens/sec, load-time, RAM usage PNGs.

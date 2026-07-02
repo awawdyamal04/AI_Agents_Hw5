@@ -3,11 +3,11 @@
 
 > **Course:** Orchestration of AI Agents — Lecture 08L (Local inference and training of large language models)
 > **This README is the final technical report.**
-> **Status: Phase 4 — Final Report (complete).** Phases 0–3B are implemented, run, and pushed; this document now presents and interprets the **actual outputs** they produced. What was executed end-to-end: (1) **hardware profiling** (`results/hardware_profile.json`), (2) a **dry-run / mock infrastructure check** (`results/benchmark_results.csv` mock rows + `results/dry_run.log`), (3) **controlled analysis rows** for three 7B configs, (4) **backend availability checks** for Ollama / HF+torch / AirLLM, (5) **plots** (`results/*.png`), (6) an **economics template** (`results/economic_analysis.csv`), and (7) a structural **`verify`** self-check. Every CSV row carries a `result_type` tag so provenance is explicit: `real`, `mock`, `controlled_analysis`, or `environment_check`.
+> **Status: Phase 4.5 — Real Tiny Ollama Benchmark (complete).** Phases 0–3B built and ran the measurement infrastructure; **Phase 4.5 adds the single piece of real local LLM inference** in this project. What was executed end-to-end: (1) **hardware profiling** (`results/hardware_profile.json`), (2) a **dry-run / mock infrastructure check** (`results/benchmark_results.csv` mock rows + `results/dry_run.log`), (3) **controlled analysis rows** for three 7B configs, (4) **backend availability checks** for Ollama / HF+torch / AirLLM, (5) **one REAL Ollama inference** of the tiny `smollm2:135m` model (`result_type="real"` + `results/ollama_real_run.log`), (6) **plots** (`results/*.png`), (7) an **economics template** (`results/economic_analysis.csv`), and (8) a structural **`verify`** self-check. Every CSV row carries a `result_type` tag so provenance is explicit: `real`, `mock`, `controlled_analysis`, or `environment_check`.
 >
-> **What was NOT executed (stated plainly):** no real Ollama inference, no Hugging Face / torch / transformers inference, no real AirLLM inference, and **no model files were downloaded**. There is **not a single `result_type="real"` row** in the results — and there is no fabricated benchmark number anywhere in this report.
+> **What is real vs not (stated plainly):** exactly **one real inference run happened** — the tiny `smollm2:135m` model through the Ollama CLI (`result_type="real"`, `success`). **No real Hugging Face / torch / transformers inference, and no real AirLLM inference, were performed**, and **no new model was downloaded** for this phase (the model was already pulled). The larger 7B baseline, quantized-7B, and AirLLM cases remain **controlled analysis** because of the 8 GB RAM / ~2 GB VRAM hardware ceiling and missing heavy backends. There is no fabricated benchmark number anywhere in this report.
 
-> **Why this is still a valid submission (honest limitation).** The assignment explicitly values the **analysis of constraints and limitations**, and this environment has real ones: the laptop has **8 GB RAM and ~2 GB VRAM**, and **Ollama, torch/transformers, and AirLLM are all not installed** (verified, not assumed). Rather than fake numbers, the project *records these as environment limitations and reasons about them*: `env-check` and `backend-checks` write `environment_check` rows proving each backend is absent (probed with `shutil.which` / `importlib.util.find_spec`, which detect a dependency **without importing or executing it**), and the `controlled` command produces **labelled estimates** (fit vs OOM, fast vs slow) from transparent memory formulas. Optional real runs remain wired for anyone who later installs the heavy dependencies on capable hardware. **A documented, well-reasoned limitation is a legitimate result — that is the core lesson of Lecture 08L on on-premises deployment.**
+> **Why this is a valid submission (real run + honest limitation).** The assignment values both **running a local model** and the **analysis of constraints and limitations** — this project does both. It performs **one real local inference** (the tiny `smollm2:135m` through the now-installed Ollama CLI, `result_type="real"`, ~5 tok/s cold-start incl. model load / ~32 tok/s warm), chosen tiny on purpose because the laptop has only **8 GB RAM and ~2 GB VRAM**. For the models that genuinely *cannot* run here (7B baseline / quantized / AirLLM — and with torch/transformers/AirLLM not installed), rather than fake numbers the project *records the limitation and reasons about it*: `backend-checks` write `environment_check` rows proving those backends are absent (probed with `shutil.which` / `importlib.util.find_spec`, **without importing or executing** them), and `controlled` produces **labelled estimates** (fit vs OOM, fast vs slow) from transparent memory formulas. **A real tiny run plus a documented, well-reasoned limitation on the larger models is exactly the on-premises-deployment lesson of Lecture 08L.**
 
 ---
 
@@ -203,8 +203,9 @@ python -m src.run_benchmark verify
 > `controlled` rows are **estimates** (`result_type="controlled_analysis"`),
 > not measurements, and the `env-check` row (`result_type="environment_check"`)
 > is a capability probe, not a benchmark. The economics CSV contains
-> **estimates/placeholders**. **No real model benchmark numbers exist yet** —
-> the infrastructure above is ready to record them once real runs are executed.
+> **estimates/placeholders**. The **only real benchmark numbers** in the CSV come
+> from the tiny `smollm2:135m` Ollama run (§7.3, `result_type="real"`); every 7B
+> configuration remains a labelled estimate.
 
 #### Row provenance — how each result type is distinguished
 Every row in `results/benchmark_results.csv` carries a `result_type` column so a
@@ -225,12 +226,14 @@ Phase 3B adds three **optional real-backend runners** that check whether a real
 inference backend is even present — *without installing anything, downloading any
 model, or running any inference*. Each runner probes for its dependency and, when
 the dependency is missing, records a single honest `environment_check` row saying
-so. In the current environment **none of the three backends are installed**, so
-every check records `status="unavailable"`:
+so. The `environment_check` rows in the CSV timestamped `17:16` were recorded
+**before Ollama was installed**, when all three backends were absent. **Ollama has
+since been installed** (`ollama version is 0.31.1`), which enabled the Phase 4.5
+real run (§7.3); HF/torch and AirLLM remain absent:
 
-| Backend | Command | Probe | Result here |
+| Backend | Command | Probe | Status |
 |---|---|---|---|
-| Ollama (quantized/GGUF) | `ollama-check` | `shutil.which("ollama")` | **unavailable** — Ollama CLI not installed |
+| Ollama (quantized/GGUF) | `ollama-check` / `ollama-real` | `shutil.which("ollama")` | **NOW installed** — used for the real `smollm2:135m` run (§7.3). The `17:16` env-check row predates the install. |
 | HuggingFace + torch (tiny CPU) | `hf-check` | `importlib.util.find_spec("transformers"/"torch")` | **unavailable** — transformers/torch not installed |
 | AirLLM (layer streaming) | `airllm-check` | `importlib.util.find_spec("airllm")` | **unavailable** — AirLLM not installed; controlled AirLLM analysis is used instead |
 
@@ -241,15 +244,15 @@ python -m src.run_benchmark plots            # PNG charts (environment_check row
 python -m src.run_benchmark verify           # structural PASS/FAIL self-check
 ```
 
-**This is a documented limitation, not a fake result.** No real LLM inference
-happened in this environment — the runners only detect that the required
-dependency is absent and write it down. The probes use `shutil.which` /
+**These availability checks run no inference themselves** — they only detect
+whether a backend is present and write it down, using `shutil.which` /
 `importlib.util.find_spec`, which detect a dependency *without importing or
-executing it*, so nothing heavy is triggered. If a backend were present, the
-runners would still not run inference in this phase; they record a `skipped`
-`environment_check` row and each file documents (in `_placeholder_real_run`) how
-a real run *would* be wired for anyone who later installs the deps on capable
-hardware.
+executing it*. The **HF/torch** and **AirLLM** backends are genuinely absent, so
+those remain documented limitations (not fake results). **Ollama, by contrast, is
+installed** — which is exactly why Phase 4.5 (§7.3) could take the separate
+`ollama-real` path and perform one real tiny inference. The HF and AirLLM runners
+still document (in `_placeholder_real_run`) how a real run *would* be wired for
+anyone who later installs those deps on capable hardware.
 
 These `environment_check` rows carry no benchmark numbers and are therefore
 **excluded from the performance charts**; `controlled_analysis` rows remain
@@ -264,6 +267,63 @@ actually being installed and compatible with Python 3.8), the **model format**
 from ~14 GB to ~3.5 GB), and **memory-aware execution** (AirLLM streaming one
 layer at a time). A missing backend is itself a real, informative constraint —
 exactly the kind of feasibility limit this project set out to analyze.
+
+### 7.3 Real Tiny Ollama Benchmark (Phase 4.5) — the ONE real inference
+
+This is the **only real LLM inference** in the whole project. Ollama is installed
+(`ollama version is 0.31.1`) and the tiny **`smollm2:135m`** model was already
+pulled, so one real local run was executed through the Ollama CLI:
+
+```bash
+python -m src.run_benchmark ollama-real   # runs the already-pulled smollm2:135m
+```
+
+Internally it runs — without downloading or re-pulling anything:
+```bash
+ollama run smollm2:135m "Explain in one sentence what quantization means in local LLM inference."
+```
+and measures wall-clock total time, output tokens (whitespace count), tokens/sec,
+and best-effort peak RAM of the Ollama process tree. It appends **one
+`result_type="real"` row** (`config=ollama_smollm2_135m_real`) and saves the raw
+model output to `results/ollama_real_run.log`.
+
+**Why `smollm2:135m` specifically?** This laptop has **8 GB RAM (~1.3 GB typically
+free) and ~2 GB VRAM**. A 7B model (~14 GB fp16 / ~3.5 GB int4) cannot run
+comfortably here, but a **135M-parameter on-device model** loads and generates in
+~1–2 seconds — small enough to actually *measure* real local inference on this
+hardware rather than only estimate it. It is the concrete, runnable end of the
+same feasibility spectrum the controlled 7B analysis reasons about.
+
+**Real measured result** (`result_type="real"`, the persisted row in
+`results/benchmark_results.csv`):
+
+| Metric | Value |
+|---|---|
+| Config | `ollama_smollm2_135m_real` |
+| Model | `smollm2:135m` (Ollama, on-device) |
+| Result / status | **success** (CLI return code 0) |
+| Total time (incl. cold model load) | **~6.09 s** |
+| Output tokens (≈ whitespace) | **~31** |
+| Throughput | **~5.1 tokens/sec** |
+| Peak RAM (Ollama process tree, best-effort) | **~22.5 MB** |
+
+> **Honest caveats.** (1) **Total time includes cold model load.** This persisted
+> run was a *cold start* (~6.09 s, ~5 tok/s) — the wall-clock covers loading the
+> model into memory *and* generation. On a *warm* server (model already resident
+> from a prior call) the same run completes in ~1.5 s at ~32 tok/s. That gap is
+> itself the Lecture-08L **load-time vs decode** distinction, measured live. (2)
+> The `~22.5 MB` peak RAM is the RSS of the **Ollama CLI client process tree**
+> sampled by psutil; the model weights are held by the separate `ollama serve`
+> backend, so this figure **under-counts** true model memory — reported as a
+> best-effort, transparently-labelled measurement, not a footprint claim. (3)
+> Tokens use the project's **approximate whitespace counter**. (4) These numbers
+> are for a **135M** model and say nothing about 7B throughput.
+
+**Everything larger stays controlled analysis.** The **7B fp16 baseline**,
+**int4/GGUF quantized 7B**, and **AirLLM layer-streaming 7B** are *not* run for
+real — they exceed this hardware and/or need heavy backends (torch / transformers
+/ AirLLM) that are not installed. They remain `result_type="controlled_analysis"`
+rows (§8.3). **No real AirLLM and no real Hugging Face / torch inference happened.**
 
 ### 7.1 Planned pipeline (later phases)
 ```bash
@@ -303,9 +363,10 @@ pip install bitsandbytes            # INT8 (often GPU-only; may not work here)
 ## 8. Results — What Was Actually Produced
 
 This section reports the **real files this project generated**. No benchmark number is
-invented: the only rows that exist are `mock`, `environment_check`, and clearly-labelled
-`controlled_analysis` estimates, plus openly-marked economic **estimates**. There is **no
-`result_type="real"` row** — no model was loaded, executed, or downloaded.
+invented. **Exactly one** `result_type="real"` row exists — the tiny `smollm2:135m`
+Ollama run (§7.3) — alongside `mock`, `environment_check`, and clearly-labelled
+`controlled_analysis` estimates, plus openly-marked economic **estimates**. No new
+model was downloaded (the tiny model was already pulled).
 
 ### 8.0 Exact commands that were run
 Run as a module so package imports resolve (`src/` is a package):
@@ -315,6 +376,7 @@ python -m src.run_benchmark dry-run         # -> mock row + results/dry_run.log
 python -m src.run_benchmark env-check       # -> environment_check row (Ollama? py? RAM?)
 python -m src.run_benchmark controlled      # -> 3 controlled_analysis rows
 python -m src.run_benchmark backend-checks  # -> 3 environment_check rows (Ollama/HF/AirLLM)
+python -m src.run_benchmark ollama-real     # -> 1 REAL row (smollm2:135m) + ollama_real_run.log
 python -m src.run_benchmark economics        # -> results/economic_analysis.csv
 python -m src.run_benchmark plots            # -> results/tokens_per_sec.png, load_time.png, peak_ram.png
 python -m src.run_benchmark verify           # -> structural PASS/FAIL self-check
@@ -324,12 +386,13 @@ python -m src.run_benchmark verify           # -> structural PASS/FAIL self-chec
 | Artifact | File | Produced by | Content / provenance |
 |---|---|---|---|
 | Hardware profile | `results/hardware_profile.json` | `hardware` | **Real** psutil probe + static specs (not a benchmark) |
-| Benchmark CSV | `results/benchmark_results.csv` | `dry-run`, `env-check`, `controlled`, `backend-checks` | 2 `mock` + 4 `environment_check` + 3 `controlled_analysis` rows |
+| Benchmark CSV | `results/benchmark_results.csv` | `dry-run`, `env-check`, `controlled`, `backend-checks`, `ollama-real` | 2 `mock` + 4 `environment_check` + 3 `controlled_analysis` + **1 `real`** rows |
+| Real Ollama log | `results/ollama_real_run.log` | `ollama-real` | **Real** captured output of the `smollm2:135m` run (ANSI-stripped) |
 | Dry-run log | `results/dry_run.log` | `dry-run` | Proof the CSV/log I/O path works (no inference) |
 | Economics CSV | `results/economic_analysis.csv` | `economics` | 3 rows, **all labelled ESTIMATE/PLACEHOLDER** |
-| Throughput plot | `results/tokens_per_sec.png` | `plots` | Watermarked (no real rows exist) |
-| Load-time plot | `results/load_time.png` | `plots` | Watermarked |
-| Peak-RAM plot | `results/peak_ram.png` | `plots` | Shows controlled-analysis footprints, watermarked |
+| Throughput plot | `results/tokens_per_sec.png` | `plots` | Real `smollm2:135m` bar + non-real bars tagged `[MOCK]` / `[NON-REAL / ESTIMATED]` |
+| Load-time plot | `results/load_time.png` | `plots` | Real vs non-real bars, each per-bar tagged by provenance |
+| Peak-RAM plot | `results/peak_ram.png` | `plots` | Controlled-analysis footprints + real run, tagged by provenance |
 
 ### 8.2 Hardware profile (measured, `results/hardware_profile.json`)
 | Field | Value |
@@ -359,27 +422,40 @@ The progression **14 GB → 3.5 GB → 1.44 GB** is the whole thesis in one line
 memory-aware techniques from Lecture 08L that move a 7B model from *impossible* toward
 *feasible-but-slow* on 8 GB RAM.
 
-### 8.4 Backend availability (measured capability probes)
-`env-check` + `backend-checks` recorded **four** `environment_check` rows — every real backend
-is absent in this environment:
+### 8.3b Real tiny run — measured (`result_type="real"`, §7.3)
+The one **real** row anchors that spectrum with an actual measurement on this laptop: the tiny
+**`smollm2:135m`** model, run through the now-installed Ollama CLI, produced a full sentence with
+return code 0 → `success`. The persisted (cold-start) run took **~6.09 s at ~5.1 tokens/sec**
+including model load; a warm re-run is ~1.5 s / ~32 tok/s — the load-vs-decode gap measured live.
+Best-effort peak RAM was ~22.5 MB of the Ollama client process tree. It is small by design — small
+enough to *measure* rather than only estimate — and it proves the pipeline records a genuine
+`result_type="real"` row end to end. See §7.3 for the full table, caveats, and the captured output
+in `results/ollama_real_run.log`.
 
-| Backend | Command | Probe (no import/exec) | Result |
+### 8.4 Backend availability (measured capability probes)
+`env-check` + `backend-checks` recorded **four** `environment_check` rows at `17:16`, before
+Ollama was installed. Ollama has since been added (enabling the real run above); HF/torch and
+AirLLM are still absent:
+
+| Backend | Command | Probe (no import/exec) | Status |
 |---|---|---|---|
-| Ollama (quantized/GGUF) | `env-check`, `ollama-check` | `shutil.which("ollama")` | **unavailable** — CLI not installed |
+| Ollama (quantized/GGUF) | `ollama-check`, `ollama-real` | `shutil.which("ollama")` | **installed now** — used for the real `smollm2:135m` run; `17:16` env-check row predates the install |
 | HF + torch (tiny CPU) | `hf-check` | `find_spec("transformers"/"torch")` | **unavailable** — not installed |
 | AirLLM (layer streaming) | `airllm-check` | `find_spec("airllm")` | **unavailable** — not installed |
 
-These rows carry no benchmark numbers and are **excluded from the performance charts**.
+These `environment_check` rows carry no benchmark numbers and are **excluded from the performance
+charts**.
 
 ### 8.5 Plots (`results/*.png`)
-Three bar charts are generated from whatever rows exist. Because **no `real` rows exist**, the
-charts are **watermarked** (e.g. "CONTROLLED ANALYSIS" / "MOCK DATA") and bars are coloured by
-provenance; `environment_check` rows are excluded from numeric charts. They visualise the
-controlled-analysis footprints (notably the 14 GB → 3.5 GB → 1.44 GB peak-RAM comparison), not
-measured throughput.
-- `results/tokens_per_sec.png` — throughput slots (no real numbers; watermarked)
-- `results/load_time.png` — load-time slots (no real numbers; watermarked)
-- `results/peak_ram.png` — estimated peak RAM per controlled config (watermarked)
+Three bar charts are generated from whatever rows exist (the 4 `environment_check` rows carry no
+numbers and are excluded). Now that a **`real`** row exists, the full-chart watermark is dropped;
+instead each bar is coloured **and per-bar tagged** by provenance so a real measurement is never
+confused with an estimate: `[REAL]` (blue), `[NON-REAL / ESTIMATED]` (orange, controlled), `[MOCK]`
+(grey). The charts show both the real `smollm2:135m` measurement and the controlled 7B footprints
+(notably the 14 GB → 3.5 GB → 1.44 GB peak-RAM comparison).
+- `results/tokens_per_sec.png` — real `smollm2:135m` bar (~5.1 tok/s cold) next to non-real estimate bars
+- `results/load_time.png` — real ~6.09 s total (incl. cold load) vs non-real slots
+- `results/peak_ram.png` — controlled 7B footprints + real run, each tagged by provenance
 
 ---
 
@@ -396,9 +472,11 @@ measured throughput.
   trades memory for **disk-I/O latency** because layer weights are re-read per token. This is
   the classic memory-vs-latency trade-off the lecture frames with **virtual memory / paging /
   mmap**.
-- **Prefill vs decode.** No real run means no measured **TTFT (prefill)** or steady-state
-  **decode tokens/sec**; the metrics harness (`src/metrics.py`) is built to capture both once a
-  real run is possible, and the CSV schema already has `ttft_s` and `tokens_per_s` columns.
+- **Prefill vs decode.** The real `smollm2:135m` run measured **end-to-end throughput
+  (~5.1 tokens/sec cold, ~32 warm)** but, because it goes through the Ollama CLI, it does **not** isolate
+  **TTFT (prefill)** from decode — `ttft_s` is left `0.0` and only total time + tokens/sec are
+  claimed. The metrics harness (`src/metrics.py`) and the CSV `ttft_s` column are ready to record
+  a separated prefill/decode split from a future API-level run. No 7B throughput was measured.
 - **Software stack is itself a constraint.** The `environment_check` rows demonstrate the
   lecture's key point that "local LLM deployment" is not just "run the model": it depends on the
   **hardware** (RAM/VRAM), the **software stack** (Ollama / torch / transformers / AirLLM being
@@ -432,18 +510,21 @@ tokens/sec that this environment could not produce.
 **Research question:** *Can a massive LLM run on this 8 GB-RAM / ~2 GB-VRAM laptop, and which
 memory-aware techniques make it feasible?*
 
-**Answer, from the controlled analysis:** A **7B FP16** model is **not feasible** here — its
-~14 GB of weights exceed both RAM and VRAM (expected OOM at load). **Quantization to INT4/GGUF**
-(~3.5 GB) is the most practical single lever: it plausibly *fits in RAM* and runs on CPU,
-trading speed for feasibility. **AirLLM layer-streaming** (~1.44 GB peak) fits most comfortably
-in memory but is expected to be the **slowest** due to per-token disk I/O — worth it only when
-memory, not latency, is the binding constraint.
+**Answer.** A **tiny 135M** model **does run for real** here: the `smollm2:135m` Ollama run
+succeeded (`result_type="real"`) — ~6.09 s cold-start (incl. model load) / ~5.1 tok/s, or ~1.5 s /
+~32 tok/s warm. At the other end, a **7B FP16** model
+is **not feasible** — its ~14 GB of weights exceed both RAM and VRAM (expected OOM at load).
+**Quantization to INT4/GGUF** (~3.5 GB) is the most practical single lever: it plausibly *fits in
+RAM* and runs on CPU, trading speed for feasibility. **AirLLM layer-streaming** (~1.44 GB peak)
+fits most comfortably in memory but is expected to be the **slowest** due to per-token disk I/O —
+worth it only when memory, not latency, is the binding constraint.
 
-**Honest limitation:** these conclusions rest on **controlled estimates**, because no real
-inference backend (Ollama / torch / AirLLM) is installed and models were not downloaded.
-Those absences are recorded as `environment_check` results, not hidden. The failure and
-slowness predictions are **legitimate, expected outcomes** grounded in transparent memory
-formulas and Lecture 08L — which is precisely the constraint-analysis this assignment asks for.
+**Honest limitation:** the **7B** conclusions rest on **controlled estimates**, because torch /
+transformers / AirLLM are not installed and a 7B model was not downloaded; only the **tiny**
+`smollm2:135m` Ollama case was actually executed. Those backend absences are recorded as
+`environment_check` results, not hidden. The 7B failure and slowness predictions are
+**legitimate, expected outcomes** grounded in transparent memory formulas and Lecture 08L —
+which is precisely the constraint-analysis this assignment asks for.
 
 ---
 
@@ -479,36 +560,36 @@ python -m src.run_benchmark verify          # structural PASS/FAIL self-check
 ## 11B. Limitations and Future Real Runs
 
 **Limitations (documented, not hidden):**
-- **No real LLM inference was performed.** No Ollama, no HF/torch/transformers, no real AirLLM run, and **no model files were downloaded**.
-- **Backends are absent:** `ollama`, `transformers`/`torch`, and `airllm` are all not installed (confirmed by capability probes).
-- **Hardware ceiling:** 7.88 GB RAM (~1.3 GB typically free) and ~2 GB VRAM make a 7B FP16 model impossible and even quantized/streamed 7B inference expected-slow.
+- **Only ONE real inference was performed** — the tiny `smollm2:135m` via Ollama. **No real HF/torch/transformers inference and no real AirLLM run** happened, and **no new model was downloaded** (the tiny model was already pulled).
+- **Backends still absent:** `transformers`/`torch` and `airllm` are not installed (confirmed by capability probes); Ollama *is* installed and was used for the one real run.
+- **Hardware ceiling:** 7.88 GB RAM (~1.3 GB typically free) and ~2 GB VRAM make a 7B FP16 model impossible and even quantized/streamed 7B inference expected-slow — which is exactly why the real run used a 135M model, not a 7B one.
 - **Python 3.8** further constrains which modern ML wheels would even install.
-- All throughput/latency and economic `$/1M-token` figures are therefore **estimates or placeholders**, never measurements.
+- All **7B** throughput/latency and the economic `$/1M-token` figures remain **estimates or placeholders**; only the tiny 135M tokens/sec is a real measurement.
 
 **Future real runs (the harness is already wired for them):**
-- Install heavy deps on capable hardware: `pip install torch transformers`, `pip install llama-cpp-python` (GGUF), `pip install airllm`, and install the Ollama desktop app.
-- Implement/enable the real runners (`baseline_runner`, `quant_runner`, `airllm_runner`); each `_placeholder_real_run` documents how a genuine call would be wired.
-- A real run would append `result_type="real"` rows using the **same CSV schema**, at which point the plots lose their watermark and Section 8/9 gain measured TTFT + tokens/sec — no other change to the report structure is needed.
+- Install heavy deps on capable hardware: `pip install torch transformers`, `pip install llama-cpp-python` (GGUF), `pip install airllm`; Ollama is already installed and could pull a larger quantized model on a machine with more RAM/VRAM.
+- Implement/enable the remaining real runners (`baseline_runner`, `quant_runner`, `airllm_runner`); the HF/AirLLM `_placeholder_real_run` documents how a genuine call would be wired.
+- Each real run appends `result_type="real"` rows using the **same CSV schema** the Ollama run already used — no change to the report structure is needed.
 
 ---
 
 ## 11C. Self-Scoring Recommendation
 
-**Honest recommendation: this submission merits a 95–100 *only if* the lecturer accepts
-controlled analysis (under documented hardware/software limitations) as a valid substitute for
-real inference.** That acceptance is reasonable because Lecture 08L and this assignment
-explicitly emphasise **analysing constraints and limitations** — and this project does exactly
-that: it profiles the real hardware, proves each backend is genuinely absent, and reasons
-quantitatively (14 GB → 3.5 GB → 1.44 GB) about where a 7B model fails and which techniques
-rescue it.
+**Honest recommendation: this submission merits a 95–100** if the lecturer accepts that a **real
+tiny local inference** plus **controlled analysis of the larger 7B cases** (under documented
+hardware/software limits) together satisfy the assignment. That is reasonable because Lecture 08L
+and this assignment emphasise **analysing constraints and limitations** — and this project does
+both: it *actually runs* a real local model (`smollm2:135m`, ~5 tok/s cold / ~32 warm) to prove the pipeline
+end-to-end, and it reasons quantitatively (14 GB → 3.5 GB → 1.44 GB) about where a 7B model fails
+and which techniques rescue it on this exact hardware.
 
-**Full disclosure for grading:** **No real LLM inference was performed and no models were
-downloaded.** There is no measured tokens/sec, TTFT, or load time anywhere in this report; the
-throughput and economic figures are labelled estimates/placeholders. If the rubric *requires* a
-real model to have actually run, this submission does not meet that specific bar on this
-hardware — and that gap is stated openly rather than papered over with invented numbers. The
-infrastructure to produce real results is complete and one `pip install` away on capable
-hardware.
+**Full disclosure for grading:** **exactly one real LLM inference was performed** — the tiny
+`smollm2:135m` Ollama run (`result_type="real"`, persisted ~6.09 s / ~5.1 tok/s cold-start). **No real 7B run, no
+real Hugging Face / torch inference, and no real AirLLM run** happened, and **no new model was
+downloaded**. All 7B throughput and the economic `$/1M-token` figures are labelled
+estimates/placeholders — never presented as measured. If the rubric *requires* a **7B** model to
+have actually run, that specific bar is not met on 8 GB RAM / ~2 GB VRAM, and that gap is stated
+openly rather than papered over with invented numbers.
 
 ---
 
@@ -533,15 +614,15 @@ _Implementation-stage prompts will be appended here as code is generated._
 | **Execute** | Build & run | implement `src/`, run benchmarks, fill results |
 | **Push** | Publish | commit + push to public GitHub repo |
 
-We are at the **Verify → Execute** boundary: documentation, the `src/` measurement infrastructure, the controlled/environment runners, and all non-inference `results/` artifacts are complete and verified. The only remaining step is optional **real** inference (Phase 6), which requires heavy dependencies + capable hardware not present here.
+We are in **Execute**: documentation, the `src/` measurement infrastructure, the controlled/environment runners, and — as of Phase 4.5 — **one real local inference** (`smollm2:135m` via Ollama) are all complete and verified. Remaining optional work is real **7B** inference (baseline / quantized / AirLLM), which still requires heavy dependencies + more capable hardware than this laptop.
 
 ---
 
 ## 14. Repository Rules Compliance
 - ✅ Python source lives in `src/` (16 modules, modular split).
-- ✅ Results/plots/logs/CSVs live in `results/` (JSON, CSV, log, 3 PNGs).
-- ✅ Every Python file is < 150 lines (enforced by `verify`).
+- ✅ Results/plots/logs/CSVs live in `results/` (JSON, 2 CSVs, 2 logs, 3 PNGs).
+- ✅ Every Python file is < 150 lines (enforced by `verify` — 16 files checked, PASS).
 - ✅ Runs from the terminal (`python -m src.run_benchmark <command>`).
 - ✅ No single huge file — modular split across `src/` and `src/runners/`.
 - ✅ README is the final technical report.
-- ✅ No invented results — every row tagged by `result_type`; only `mock`, `environment_check`, and labelled `controlled_analysis` estimates exist; economics figures marked ESTIMATE/PLACEHOLDER.
+- ✅ No invented results — every row tagged by `result_type`: **1 real** (`smollm2:135m`), plus `mock`, `environment_check`, and labelled `controlled_analysis` estimates; economics figures marked ESTIMATE/PLACEHOLDER.

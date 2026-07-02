@@ -12,6 +12,8 @@ venv/
 # Logs and temp results (keep CSVs and PNGs)
 results/*.log
 results/*.tmp
+# ...but keep the real Ollama inference log as evidence of the one real run.
+!results/ollama_real_run.log
 
 # Model weights (large; never commit)
 models/

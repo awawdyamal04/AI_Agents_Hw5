@@ -8,3 +8,4 @@ timestamp,config,model,params,precision,load_s,ttft_s,tokens_per_s,peak_ram_mb,v
 2026-07-02T17:16:11,ollama_quantized_backend,ollama-cli (absent),,,0.0,0.0,0.0,0.0,N/A,unavailable,environment_check,Ollama CLI not installed
 2026-07-02T17:16:11,huggingface_tiny_cpu_backend,transformers/torch (absent),,,0.0,0.0,0.0,0.0,N/A,unavailable,environment_check,transformers/torch not installed
 2026-07-02T17:16:11,airllm_optional_backend,airllm (absent),,,0.0,0.0,0.0,0.0,N/A,unavailable,environment_check,AirLLM not installed; controlled AirLLM analysis is used instead
+2026-07-02T18:44:03,ollama_smollm2_135m_real,smollm2:135m,135M,on-device,6.092,0.0,5.089,22.46,~2 GB,success,real,Real local Ollama inference on tiny quantized/on-device model

@@ -1,14 +1,10 @@
-"""CLI orchestrator for Assignment 05.
+"""CLI orchestrator for Assignment 05 (subcommands in the COMMANDS table).
 
-Thin argparse entrypoint. No real model inference is implemented; every
-subcommand either probes the environment or records clearly-labelled non-real
-rows. The available subcommands (name + help) are defined in the COMMANDS
-table below and shown by ``python -m src.run_benchmark -h``.
-
-Phase 3B adds the optional real-backend checks (``ollama-check``, ``hf-check``,
-``airllm-check``, and ``backend-checks`` for all three): each safely records an
-environment_check row explaining why the dependency-heavy path did NOT run —
-nothing is installed, downloaded, or inferred. (< 150 lines)
+Most subcommands only probe the environment or record clearly-labelled non-real
+rows. Phase 4.5 adds ``ollama-real``: the ONE real inference path — it runs the
+already-pulled tiny ``smollm2:135m`` via the Ollama CLI and records a
+``result_type="real"`` row. No other real inference (HF/torch/AirLLM) runs.
+(< 150 lines)
 """
 
 import argparse
@@ -69,7 +65,6 @@ def cmd_ollama_check(_args):
     ollama_runner.run()
     return 0
 
-
 def cmd_hf_check(_args):
     """Phase 3B: probe for transformers/torch; record availability (no inference)."""
     hf_runner.run()
@@ -81,6 +76,11 @@ def cmd_airllm_check(_args):
     airllm_optional_runner.run()
     return 0
 
+
+def cmd_ollama_real(_args):
+    """Phase 4.5: run ONE real tiny Ollama inference (smollm2:135m)."""
+    ollama_runner.run_real()
+    return 0
 
 def cmd_backend_checks(_args):
     """Phase 3B: run all three optional backend checks in one go."""
@@ -115,6 +115,7 @@ COMMANDS = [
     ("env-check", "record environment_check row (Ollama? RAM?)", cmd_env_check),
     ("controlled", "record controlled_analysis rows (estimates)", cmd_controlled),
     ("ollama-check", "Phase 3B: is the ollama CLI installed?", cmd_ollama_check),
+    ("ollama-real", "Phase 4.5: REAL tiny Ollama run (smollm2:135m)", cmd_ollama_real),
     ("hf-check", "Phase 3B: transformers/torch importable?", cmd_hf_check),
     ("airllm-check", "Phase 3B: is airllm importable?", cmd_airllm_check),
     ("backend-checks", "Phase 3B: run all optional backend checks", cmd_backend_checks),

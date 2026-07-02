@@ -1,19 +1,13 @@
-"""Plotting for Assignment 05 — Phase 2 / 3A.
+"""Plotting for Assignment 05.
 
-Reads results/benchmark_results.csv and generates simple bar charts *only*
-from rows that already exist. It never invents data. Rows are coloured by
-provenance (result_type) so estimates are never confused with measurements:
-
-- ``real``               -> blue bars
-- ``controlled_analysis``-> orange bars, chart tagged "CONTROLLED ANALYSIS"
-- ``mock``/dry-run       -> grey bars, chart tagged "MOCK DATA"
-
-``environment_check`` rows carry no benchmark numbers, so they are excluded
-from the numeric charts. If no real rows exist, a watermark is drawn so no
-reader mistakes the charts for real benchmark numbers.
-
-matplotlib is a lightweight, declared dependency; if it is somehow missing we
-skip gracefully with a clear message instead of crashing. (< 150 lines)
+Reads results/benchmark_results.csv and charts *only* existing rows (never
+invents data). Bars are coloured AND tagged by provenance (result_type):
+``real`` -> blue [REAL], ``controlled_analysis`` -> orange [NON-REAL /
+ESTIMATED], ``mock`` -> grey [MOCK]. ``environment_check`` rows carry no
+benchmark numbers and are excluded from the charts. When no ``real`` row exists
+a watermark is drawn so nobody mistakes the charts for measurements; once a real
+row is present (Phase 4.5) the watermark drops and per-bar tags keep the
+non-real bars clearly marked. matplotlib missing -> skip gracefully. (< 150)
 """
 
 from . import config
@@ -39,6 +33,12 @@ _COLORS = {
     "real": "#4c72b0",
     "controlled_analysis": "#dd8452",
     "mock": "#b0b0b0",
+}
+
+_TAGS = {  # per-bar provenance tag so mixed charts stay unambiguous
+    "real": "REAL",
+    "controlled_analysis": "NON-REAL / ESTIMATED",
+    "mock": "MOCK",
 }
 
 
@@ -74,16 +74,16 @@ def _watermark(cats):
     return "NON-REAL (mock / estimated)"
 
 
-def _label(row, idx):
-    """Short x-axis label combining config + model (deduped by index)."""
-    cfg = row.get("config", f"row{idx}")
-    model = row.get("model", "")
-    return f"{cfg}\n{model}"[:40] if model else cfg
+def _label(row, idx, cat=""):
+    """Short x-axis label: config name + a provenance tag (REAL/MOCK/…)."""
+    cfg = (row.get("config", f"row{idx}") or f"row{idx}")[:34]
+    tag = _TAGS.get(cat, "")
+    return f"{cfg}\n[{tag}]" if tag else cfg
 
 
 def _render_one(rows, cats, column, out_path, ylabel):
     """Render a single bar chart for `column` and save it. Returns the path."""
-    labels = [_label(r, i) for i, r in enumerate(rows)]
+    labels = [_label(r, i, c) for i, (r, c) in enumerate(zip(rows, cats))]
     values = [_to_float(r.get(column)) for r in rows]
     colors = [_COLORS.get(c, "#4c72b0") for c in cats]
 

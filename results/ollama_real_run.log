@@ -1,0 +1,8 @@
+[2026-07-02T18:44:03] cmd: ollama run smollm2:135m <prompt>
+prompt: Explain in one sentence what quantization means in local LLM inference.
+returncode: 0
+elapsed_s: 6.092
+peak_ram_mb: 22.46
+--- model output (ansi-stripped) ---
+In local LLM inference, quantization refers to the process of converting ra raw data from an input space into a more interpretable representation using using techniques such as aggregation and normalization.
+
