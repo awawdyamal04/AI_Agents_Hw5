@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment / secrets
+.env
+
+# Logs and temp results (keep CSVs and PNGs)
+results/*.log
+results/*.tmp
+
+# Model weights (large; never commit)
+models/
+*.bin
+*.safetensors
+*.gguf
+
+# OS
+.DS_Store

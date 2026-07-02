@@ -1,0 +1,9 @@
+# Assignment 05 — lightweight dependencies only.
+# Heavy/optional packages (torch, transformers, airllm, llama-cpp-python,
+# bitsandbytes) are documented in README.md and installed manually ONLY if
+# the hardware and run allow it. They are intentionally NOT forced here.
+
+psutil        # hardware + RAM/CPU sampling
+pandas        # results aggregation and tables
+matplotlib    # plots (tokens/sec, load time, RAM usage)
+requests      # HTTP checks (e.g., Ollama local API, model availability)
